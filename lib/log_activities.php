@@ -1,15 +1,16 @@
 <?php
 //set_include_path(EXTENSIONS);
 /**
- * Requires the use of the Symphony Members Extension
+ * Requires the use of the Symphony Members Extension v 1.0 beta 3 and Symphony 2.2.1
  */
 require_once(EXTENSIONS . "/members/extension.driver.php");
+require_once(EXTENSIONS . "/members/lib/member.symphony.php");
 
 /*
  * This is a PHP library that handles calling Memebers Activity Logging.
  *
  * Copyright (c) 2010 Will Nielsen -- http://nielsendigital.com
- * 
+ *
  * AUTHOR:
  *   Will Nielsen
  *
@@ -33,13 +34,10 @@ require_once(EXTENSIONS . "/members/extension.driver.php");
  */
 
 
-class Log_Activities {
-
-	private $_info = array ();
-	protected $_member;
-
+Class Log_Activities extends SymphonyMember {
+	// wjn 2011-05-04
 	public function __construct() {
-		$this->_collectInfo();		
+		$this->_collectInfo();
 		$this->_logActivity();
 	}
 
@@ -52,19 +50,21 @@ class Log_Activities {
 		$post = ob_get_contents();
 		ob_end_clean();
 
-		$memberID = General :: Sanitize($_POST['fields']['owner']);
-	
-		$this->_info['activity_date'] = date('Y-m-d h:i:s');
-		
+		$memberID = Members::getMemberID();
 		// gets member information from the member id ($_POSTS['fields']['owner'])
-		$this->_member = $this->fetchMemberFromID($memberID);
-		
-		$this->_info['member-username'] = $this->_member[$this->usernameAndPasswordField()]['username'];
+		$this->_member = Members::initialiseMemberObject($memberID);
 		
 		
-		// pulls the member name (Last, First) from the _data[47]['value'] array address
-		$this->_info['member-name'] = $this->_member[$this->memberNameField()]['value'];
+		$this->_info['member-name'] = $this->memberName();
+		
+		// timestamp for log
+		$this->_info['activity_date'] = date('Y-m-d h:i:s');
 
+
+		$this->_info['member-username'] = $this->memberUsername();
+
+
+		// pulls the member name (Last, First) from the _data[47]['value'] array address
 		$this->_info['post-array'] = General :: Sanitize($post);
 
 		$this->_info['activity'] = General :: Sanitize(key($_POST['action']));
@@ -76,26 +76,26 @@ class Log_Activities {
 		$this->_info['remote-port'] = $_SERVER['REMOTE_PORT'];
 	}
 
-		protected function _logActivity()
+	protected function _logActivity()
+	{
+		ob_start();
+		echo "<pre>"; echo var_dump($_POST); echo "</pre>";
+		$post_array = ob_get_contents();
+		ob_end_clean();
+		$post_array = htmlspecialchars($post_array, ENT_QUOTES);
+			
+			
+		$actions_string = '';
+		foreach($_POST['action'] as $key => $val)
 		{
-			ob_start();
-				echo "<pre>"; echo var_dump($_POST); echo "</pre>";
-				$post_array = ob_get_contents();
-			ob_end_clean();
-			$post_array = htmlspecialchars($post_array, ENT_QUOTES);
-			
-			
-			$actions_string = '';
-			foreach($_POST['action'] as $key => $val)
+			$actions_string .= $key;
+			if(end($_POST['action']) != $val)
 			{
-				$actions_string .= $key;
-				if(end($_POST['action']) != $val)
-				{
-					$actions_string .= ',';
-				}
+				$actions_string .= ',';
 			}
+		}
 			
-			$sql = "INSERT INTO `tbl_members_activity` (" .
+		$sql = "INSERT INTO `tbl_members_activity` (" .
 					"activity_date," .
 					"member_username," .
 					"member_name," .
@@ -121,55 +121,25 @@ class Log_Activities {
 					"'{$this->_info['remote-port']}' " .
 					");";
 
-					return Symphony::Database()->query($sql);
+		return Symphony::Database()->query($sql);
 			
-		}
+	}
 
-		// wjn addition 3/20/2010
-		public function memberNameField(){
-			return Symphony::Database()->fetchVar('id', 0, "SELECT `id` FROM `tbl_fields` WHERE `parent_section` = '".self::memberSectionID()."' AND `element_name` = 'name' LIMIT 1");			
-		}
-		
-		// copied from /extensions/members/extension.driver.php
-		public function roleField(){
-			return Symphony::Database()->fetchVar('id', 0, "SELECT `id` FROM `tbl_fields` WHERE `parent_section` = '".self::memberSectionID()."' AND `type` = 'memberrole' LIMIT 1");
-		}
-		
-		public function usernameAndPasswordField(){
-			return Symphony::Database()->fetchVar('id', 0, "SELECT `id` FROM `tbl_fields` WHERE `parent_section` = '".self::memberSectionID()."' AND `type` = 'member' LIMIT 1");			
-		}
+	// wjn addition 2011-05-04
 
-		public function usernameAndPasswordFieldHandle(){
-			return Symphony::Database()->fetchVar('element_name', 0, "SELECT `element_name` FROM `tbl_fields` WHERE `parent_section` = '".self::memberSectionID()."' AND `type` = 'member' LIMIT 1");			
-		}
+	protected function memberName(){
+		$id = Symphony::Database()->fetchVar('id', 0, "SELECT `id` FROM `tbl_fields` WHERE `parent_section` = '".extension_Members::getMembersSection()."' AND `element_name` = 'Name' LIMIT 1");
 		
-		public static function memberSectionID(){
-			$id = (int)Symphony::Configuration()->get('member_section', 'members');
-			return($id == 0 ? NULL : $id);
-		}
+		return $this->Member->getData($id, true)->value;
+	}
+	protected function memberUsername(){
+		$id = Symphony::Database()->fetchVar('id', 0, "SELECT `id` FROM `tbl_fields` WHERE `parent_section` = '".extension_Members::getMembersSection()."' AND `element_name` = 'Username' LIMIT 1");
 		
-		public static function memberEmailFieldID(){
-			return (int)Symphony::Configuration()->get('email_address_field_id', 'members');
-		}
-		
-		public static function memberTimezoneOffsetFieldID(){
-			return (int)Symphony::Configuration()->get('timezone_offset_field_id', 'members');
-		}		
-					
-		public function memberSectionHandle(){
-			$section_id = self::memberSectionID();
-			
-			return Symphony::Database()->fetchVar('handle', 0, "SELECT `handle` FROM `tbl_sections` WHERE `id` = $section_id LIMIT 1");
-		}	
-		
-		public function fetchMemberFromID($member_id){
+		return $this->Member->getData($id, true)->value;
+	}
 	
-		$entryManager = new EntryManager($this->_Parent);
-		$Member = $entryManager->fetch($member_id, NULL, NULL, NULL, NULL, NULL, false, true);
-		$Member = $Member[0];
-		
-		return $Member->_data;			
-		}
-	
+
+
+
 
 }

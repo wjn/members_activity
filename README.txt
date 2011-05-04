@@ -2,11 +2,11 @@
 Member Activity
 ------------------------------------
 
-Version: 1.0
+Version: 2.0.0
 Author: Will Nielsen (http://nielsendigital.com)
 Email: will@nielsendigital.com
-Build Date: 19th March 2010
-Requirements: Symphony 2.0.7 or greater.
+Build Date: 4th May 2011
+Requirements: Symphony 2.2.1 or greater, Members Extension 1.0 beta 3 or later.
 
 
 [INSTALLATION]

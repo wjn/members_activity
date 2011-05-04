@@ -22,7 +22,8 @@ Class extension_members_activity extends Extension {
 			'description' => 'This event records what registered members do ' .
 			'and is dependent on the <em>Symphony Members Extension</em>.',
 			'compatibility' => array (
-				'2.0.7' => true
+				'2.0.7' => true,
+				'2.2.1' => true
 			)
 		);
 	}
@@ -133,7 +134,7 @@ Class extension_members_activity extends Extension {
 	public function fetchNavigation() {
 		return array (
 			array (
-				'location' => 330,
+				'location' => 'System',
 				'name' => __('Activity Log'),
 				'link' => '/activity_log/'
 			)
