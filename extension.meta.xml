@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<extension id="members_activity" status="released" xmlns="http://symphony-cms.com/schemas/extension/1.0">
+	
+	<name>Members Activity</name>
+
+	<description lang="en">Log Member Activity</description>
+
+	<repo type="github">https://github.com/wjn/Members_Activity</repo>
+	
+	<types>
+		<type>Event</type>
+	</types>
+	
+	<authors>
+		<author>
+			<name github="wjn" symphony="wjnielsen" twitter="nielsendigital">Will Nielsen</name>
+			<email>will@nielsendigital.com</email>
+			<website>http://nielsendigital.com</website>
+		</author>
+	</authors>
+	
+	<releases>
+		<release version="2.1.0" date="2012-11-04" min="2.3.x" />
+	</releases>	
+		
+</extension>
